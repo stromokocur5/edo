@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Satoshi', sans-serif;
+  --font-display: 'Clash Display', sans-serif;
+
+  /* Farby */
+  --color-brand-dark: #1a1b4b;
+  --color-brand-light: #f4f4f5;
+  --color-accent-primary: #6366f1;
+  --color-accent-pop: #a3e635;
+  --color-surface: #ffffff;
+}
+
+.squircle {
+  border-radius: 24px;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #1a1b4b;
+  border-radius: 10px;
+}
+

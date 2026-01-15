@@ -1,14 +1,22 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-	/* config options here */
-	eslint: {
+  /* config options here */
+  eslint: {
     // Upozornenie: Toto dovolí build aj s ESLint chybami
     ignoreDuringBuilds: true,
   },
   typescript: {
     // Upozornenie: Toto dovolí build aj s TypeScript chybami (napr. ten 'any')
     ignoreBuildErrors: true,
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+    ],
   },
 };
 

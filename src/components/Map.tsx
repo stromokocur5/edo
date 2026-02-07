@@ -1,16 +1,15 @@
 'use client';
 
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Place, Category } from '@/lib/data';
 import { useEffect, useState } from 'react';
-import { Locate, Navigation } from 'lucide-react';
+import { Locate, Navigation, Coffee, Utensils, Trees, Drama } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Coffee, Utensils, Trees, Drama } from 'lucide-react';
 
 // Funkcia na generovanie ikony podľa kategórie
-const createCustomIcon = (category: Category) => {
+const createCustomIcon = (category: Category, isSelected: boolean = false) => {
   let color = '#3b82f6'; // Default modrá
   let IconComponent = Navigation;
 
@@ -33,42 +32,58 @@ const createCustomIcon = (category: Category) => {
       break;
   }
 
+  const size = isSelected ? 48 : 32;
+  const iconSize = isSelected ? 24 : 18;
+  const border = isSelected ? '3px solid white' : '2px solid white';
+
   const iconMarkup = renderToStaticMarkup(
     <div style={{
       backgroundColor: color,
-      width: '32px',
-      height: '32px',
+      width: `${size}px`,
+      height: `${size}px`,
       borderRadius: '50%',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      border: '2px solid white',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      color: 'white'
+      border: border,
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
+      color: 'white',
+      transform: isSelected ? 'scale(1.1)' : 'scale(1)',
+      transition: 'all 0.3s ease'
     }}>
-      <IconComponent size={18} />
+      <IconComponent size={iconSize} />
     </div>
   );
 
   return L.divIcon({
     html: iconMarkup,
-    className: 'custom-marker', // Prázdna trieda, aby sme nemali default štvorček
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
+    className: 'custom-marker',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size],
+    popupAnchor: [0, -size]
   });
 };
 
-// Komponent na posun mapy pri zmene mesta
-function MapUpdater({ center }: { center: [number, number] }) {
+// Internal component to handle Map logic that needs useMap context
+function MapController({ center, selectedPlaceId, places }: { center: [number, number], selectedPlaceId?: string | null, places: Place[] }) {
   const map = useMap();
+
   useEffect(() => {
     map.flyTo(center, 13, { duration: 1.5 });
   }, [center, map]);
+
+  useEffect(() => {
+    if (selectedPlaceId) {
+      const place = places.find(p => p.id === selectedPlaceId);
+      if (place) {
+        map.flyTo([place.lat, place.lng], 15, { duration: 1 });
+      }
+    }
+  }, [selectedPlaceId, places, map]);
+
   return null;
 }
 
-// Komponent pre "Moja poloha"
 function LocationMarker() {
   const [position, setPosition] = useState<L.LatLng | null>(null);
   const map = useMap();
@@ -85,10 +100,10 @@ function LocationMarker() {
       <div className="leaflet-control leaflet-bar">
         <button
           onClick={(e) => {
-            e.stopPropagation(); // Zabrániť kliku na mapu
+            e.stopPropagation();
             handleLocate();
           }}
-          className="bg-white p-2 hover:bg-gray-100 cursor-pointer flex items-center justify-center text-gray-700 w-[34px] h-[34px]"
+          className="bg-white p-2 hover:bg-gray-100 cursor-pointer flex items-center justify-center text-gray-700 w-[34px] h-[34px] rounded-sm border-2 border-rgba(0,0,0,0.2)"
           title="Moja poloha"
         >
           <Locate size={18} />
@@ -98,14 +113,14 @@ function LocationMarker() {
   );
 }
 
-
 interface MapProps {
   center: [number, number];
   places: Place[];
+  selectedPlaceId?: string | null;
   onMarkerClick: (place: Place) => void;
 }
 
-export default function Map({ center, places, onMarkerClick }: MapProps) {
+export default function Map({ center, places, selectedPlaceId, onMarkerClick }: MapProps) {
   return (
     <MapContainer
       center={center}
@@ -118,14 +133,16 @@ export default function Map({ center, places, onMarkerClick }: MapProps) {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
       />
-      <MapUpdater center={center} />
+
+      <MapController center={center} selectedPlaceId={selectedPlaceId} places={places} />
       <LocationMarker />
 
       {places.map((place) => (
         <Marker
           key={place.id}
           position={[place.lat, place.lng]}
-          icon={createCustomIcon(place.category)}
+          icon={createCustomIcon(place.category, selectedPlaceId === place.id)}
+          zIndexOffset={selectedPlaceId === place.id ? 1000 : 0}
           eventHandlers={{
             click: () => onMarkerClick(place),
           }}

@@ -24,12 +24,11 @@
 		// see https://opennext.js.org/cloudflare/howtos/image
 		"binding": "IMAGES"
 	},
-	"services": [
+	"d1_databases": [
 		{
-			// Self-reference service binding, the service name must match the worker name
-			// see https://opennext.js.org/cloudflare/caching
-			"binding": "WORKER_SELF_REFERENCE",
-			"service": "edo"
+			"binding": "DB",
+			"database_name": "edo-db",
+			"database_id": "3b7825c4-7627-436d-827c-d071b1855e84"
 		}
 	],
 	"observability": {

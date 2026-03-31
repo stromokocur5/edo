@@ -3,8 +3,8 @@
 import { useState, useMemo, useEffect, Suspense, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CITIES_DATA, Category, Place } from '@/lib/data';
-import { MapPin, Coffee, Utensils, Trees, Drama, ChevronRight, X, Search, Navigation, List, Map as MapIcon } from 'lucide-react';
+import type { Category, Place } from '@/lib/data';
+import { MapPin, Coffee, Utensils, Trees, Drama, ChevronRight, X, Search, Navigation, List, Map as MapIcon, Loader2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import Image from 'next/image';
 
@@ -22,13 +22,49 @@ const CATEGORIES: { id: Category | 'all'; label: string; icon: any }[] = [
   { id: 'nature', label: 'Príroda', icon: Trees },
 ];
 
+interface CityWithPlaces {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  places: Place[];
+}
+
 function EdoApp() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const listRef = useRef<HTMLDivElement>(null);
 
+  // Data fetching state
+  const [citiesData, setCitiesData] = useState<CityWithPlaces[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  // Fetch data from API
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/cities').then(r => r.json()) as Promise<{ cities?: { id: string; name: string; lat: number; lng: number }[] }>,
+      fetch('/api/places').then(r => r.json()) as Promise<{ places?: (Place & { cityId: string })[] }>,
+    ])
+      .then(([citiesRes, placesRes]) => {
+        const cities = citiesRes.cities || [];
+        const places = placesRes.places || [];
+
+        // Group places by city
+        const citiesWithPlaces: CityWithPlaces[] = cities.map(city => ({
+          ...city,
+          places: places
+            .filter(p => p.cityId === city.id)
+            .map(({ cityId, ...rest }) => rest),
+        }));
+
+        setCitiesData(citiesWithPlaces);
+      })
+      .catch(console.error)
+      .finally(() => setDataLoading(false));
+  }, []);
+
   // URL State Initialization
-  const initialCityId = searchParams.get('city') || CITIES_DATA[0].id;
+  const initialCityId = searchParams.get('city') || citiesData[0]?.id || '';
   const initialCategory = (searchParams.get('cat') as Category | 'all') || 'all';
 
   const [activeCityId, setActiveCityId] = useState(initialCityId);
@@ -39,17 +75,26 @@ function EdoApp() {
   // Mobile View State
   const [mobileView, setMobileView] = useState<'map' | 'list'>('list');
 
+  // Once data loads, set the initial city if not already set
+  useEffect(() => {
+    if (citiesData.length > 0 && !activeCityId) {
+      setActiveCityId(searchParams.get('city') || citiesData[0].id);
+    }
+  }, [citiesData, activeCityId, searchParams]);
+
   // Sync state to URL
   useEffect(() => {
+    if (!activeCityId) return;
     const params = new URLSearchParams();
     if (activeCityId) params.set('city', activeCityId);
     if (activeCategory && activeCategory !== 'all') params.set('cat', activeCategory);
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [activeCityId, activeCategory, router]);
 
-  const activeCity = CITIES_DATA.find(c => c.id === activeCityId) || CITIES_DATA[0];
+  const activeCity = citiesData.find(c => c.id === activeCityId) || citiesData[0];
 
   const filteredPlaces = useMemo(() => {
+    if (!activeCity) return [];
     let places = activeCity.places;
     if (activeCategory !== 'all') places = places.filter(p => p.category === activeCategory);
     if (searchQuery.trim()) {
@@ -94,6 +139,14 @@ function EdoApp() {
     }
   };
 
+  if (dataLoading || !activeCity) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-brand-light dark:bg-gray-900">
+        <Loader2 className="w-8 h-8 text-accent-primary animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <main className="h-screen w-screen relative md:flex bg-brand-light font-sans overflow-hidden text-brand-dark dark:bg-gray-900 dark:text-gray-100 transition-colors">
 
@@ -135,7 +188,7 @@ function EdoApp() {
 
         {/* City Selector */}
         <div className="px-8 flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
-          {CITIES_DATA.map(city => (
+          {citiesData.map(city => (
             <button
               key={city.id}
               onClick={() => { setActiveCityId(city.id); setSelectedPlace(null); }}

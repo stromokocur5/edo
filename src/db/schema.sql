@@ -1,4 +1,4 @@
--- Cloudflare D1 Schema for EDO
+-- Cloudflare D1 Schema for KAM
 
 -- Cities table
 CREATE TABLE IF NOT EXISTS cities (

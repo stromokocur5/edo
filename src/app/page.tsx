@@ -30,7 +30,7 @@ interface CityWithPlaces {
   places: Place[];
 }
 
-function EdoApp() {
+function KamApp() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const listRef = useRef<HTMLDivElement>(null);
@@ -366,7 +366,7 @@ function EdoApp() {
 export default function Page() {
   return (
     <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center">Načítavam...</div>}>
-      <EdoApp />
+      <KamApp />
     </Suspense>
   )
 }

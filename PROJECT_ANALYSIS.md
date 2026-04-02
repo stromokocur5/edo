@@ -1,4 +1,4 @@
-# EDO - Interactive City Guide
+# KAM - Interactive City Guide
 
 > **Kam v tvojom meste?** — An interactive map application for exploring points of interest in Slovak cities.
 

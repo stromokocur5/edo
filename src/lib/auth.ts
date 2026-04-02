@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-const SESSION_COOKIE = 'edo_admin_session';
+const SESSION_COOKIE = 'kam_admin_session';
 
 export async function isAuthenticated(): Promise<boolean> {
     try {

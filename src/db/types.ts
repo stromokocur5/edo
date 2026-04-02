@@ -1,4 +1,4 @@
-// Database types for EDO
+// Database types for KAM
 
 export interface DbCity {
     id: string;

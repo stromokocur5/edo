@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
-const SESSION_COOKIE = 'edo_admin_session';
+const SESSION_COOKIE = 'kam_admin_session';
 const SESSION_MAX_AGE = 60 * 60 * 24; // 24 hours
 
 export async function POST(request: NextRequest) {

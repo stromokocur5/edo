@@ -73,7 +73,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 >
                     {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
                 </button>
-                <span className="font-bold text-lg">EDO Admin</span>
+                <span className="font-bold text-lg">KAM Admin</span>
                 <button
                     onClick={handleLogout}
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-red-500"
@@ -91,7 +91,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             >
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                     <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                        EDO <span className="text-blue-500">Admin</span>
+                        KAM <span className="text-blue-500">Admin</span>
                     </h1>
                 </div>
 

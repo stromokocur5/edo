@@ -1,4 +1,4 @@
--- Seed data for EDO database
+-- Seed data for KAM database
 -- Cities
 INSERT OR REPLACE INTO cities (id, name, lat, lng) VALUES ('kosice', 'Košice', 48.7209, 21.2581);
 INSERT OR REPLACE INTO cities (id, name, lat, lng) VALUES ('secovce', 'Sečovce', 48.7046, 21.6624);

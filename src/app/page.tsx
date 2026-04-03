@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import type { Category, Place } from '@/lib/data';
 import { MapPin, Coffee, Utensils, Trees, Drama, ChevronRight, X, Search, Navigation, List, Map as MapIcon, Loader2 } from 'lucide-react';
 import { clsx } from 'clsx';
-import Image from 'next/image';
+
 
 // Dynamický import mapy
 const MapComponent = dynamic(() => import('@/components/Map'), {
@@ -257,11 +257,10 @@ function KamApp() {
                 )}
               >
                 <div className="relative w-24 h-24 flex-shrink-0 rounded-2xl overflow-hidden bg-gray-200">
-                  <Image
+                  <img
                     src={place.image}
                     alt={place.name}
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                 </div>
 
@@ -312,11 +311,10 @@ function KamApp() {
 
               {/* Cover Image */}
               <div className="relative h-40 w-full shrink-0">
-                <Image
+                <img
                   src={selectedPlace.image}
                   alt={selectedPlace.name}
-                  fill
-                  className="object-cover"
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
                 <button
                   onClick={() => setSelectedPlace(null)}

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, Suspense, use } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense, use } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { ArrowLeft, Save, Trash2, Loader2, Coffee, Utensils, Trees, Drama } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Loader2, Coffee, Utensils, Trees, Drama, Upload, ImageIcon, X, Link as LinkIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const AdminMap = dynamic(() => import('@/components/AdminMap'), {
@@ -52,6 +52,12 @@ function EditPlaceForm({ params }: { params: Promise<{ id: string }> }) {
     const [deleting, setDeleting] = useState(false);
     const [error, setError] = useState('');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [imageMode, setImageMode] = useState<'upload' | 'url'>('upload');
+    const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState('');
+    const [preview, setPreview] = useState('');
+    const [dragOver, setDragOver] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [form, setForm] = useState({
         name: '',
@@ -85,6 +91,10 @@ function EditPlaceForm({ params }: { params: Promise<{ id: string }> }) {
                         image: p.image,
                         googleMapsLink: p.googleMapsLink || '',
                     });
+                    // If image is a URL (not uploaded), switch to URL mode
+                    if (p.image && !p.image.startsWith('/api/images/')) {
+                        setImageMode('url');
+                    }
                 }
             })
             .catch(console.error)
@@ -93,12 +103,70 @@ function EditPlaceForm({ params }: { params: Promise<{ id: string }> }) {
 
     const selectedCity = cities.find(c => c.id === form.cityId);
 
+    const handleFileUpload = useCallback(async (file: File) => {
+        setUploadError('');
+        setUploading(true);
+
+        const localUrl = URL.createObjectURL(file);
+        setPreview(localUrl);
+
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await res.json() as { url?: string; error?: string };
+
+            if (res.ok && data.url) {
+                setForm(f => ({ ...f, image: data.url! }));
+            } else {
+                setUploadError(data.error || 'Chyba pri nahrávaní');
+                setPreview('');
+            }
+        } catch {
+            setUploadError('Chyba pri nahrávaní obrázka');
+            setPreview('');
+        } finally {
+            setUploading(false);
+        }
+    }, []);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        setDragOver(false);
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            handleFileUpload(file);
+        }
+    }, [handleFileUpload]);
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) handleFileUpload(file);
+    };
+
+    const clearImage = () => {
+        setForm(f => ({ ...f, image: '' }));
+        setPreview('');
+        setUploadError('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
         if (!form.lat || !form.lng) {
             setError('Vyber pozíciu na mape');
+            return;
+        }
+
+        if (!form.image) {
+            setError('Pridaj obrázok');
             return;
         }
 
@@ -158,6 +226,8 @@ function EditPlaceForm({ params }: { params: Promise<{ id: string }> }) {
             </div>
         );
     }
+
+    const displayImage = preview || form.image;
 
     return (
         <div className="p-6 lg:p-8 max-w-4xl mx-auto">
@@ -319,20 +389,114 @@ function EditPlaceForm({ params }: { params: Promise<{ id: string }> }) {
 
                 {/* Image & Link */}
                 <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm space-y-4">
-                    <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Média</h2>
+                    <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Médiá</h2>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            URL obrázka (Unsplash) *
-                        </label>
-                        <input
-                            type="url"
-                            value={form.image}
-                            onChange={(e) => setForm({ ...form, image: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            required
-                        />
+                    {/* Image mode toggle */}
+                    <div className="flex gap-2 mb-4">
+                        <button
+                            type="button"
+                            onClick={() => setImageMode('upload')}
+                            className={clsx(
+                                'flex-1 py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all border-2',
+                                imageMode === 'upload'
+                                    ? 'bg-blue-500 text-white border-transparent'
+                                    : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                            )}
+                        >
+                            <Upload size={16} /> Nahrať obrázok
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setImageMode('url')}
+                            className={clsx(
+                                'flex-1 py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all border-2',
+                                imageMode === 'url'
+                                    ? 'bg-blue-500 text-white border-transparent'
+                                    : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                            )}
+                        >
+                            <LinkIcon size={16} /> URL odkaz
+                        </button>
                     </div>
+
+                    {imageMode === 'upload' ? (
+                        <div>
+                            {displayImage ? (
+                                <div className="relative rounded-xl overflow-hidden">
+                                    <img
+                                        src={displayImage}
+                                        alt="Preview"
+                                        className="w-full h-48 object-cover"
+                                    />
+                                    {uploading && (
+                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                            <Loader2 className="w-8 h-8 text-white animate-spin" />
+                                        </div>
+                                    )}
+                                    {!uploading && (
+                                        <button
+                                            type="button"
+                                            onClick={clearImage}
+                                            className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition-colors"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    )}
+                                </div>
+                            ) : (
+                                <div
+                                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                                    onDragLeave={() => setDragOver(false)}
+                                    onDrop={handleDrop}
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className={clsx(
+                                        'h-48 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-all',
+                                        dragOver
+                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
+                                            : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                    )}
+                                >
+                                    <ImageIcon size={32} className="text-gray-400" />
+                                    <div className="text-center">
+                                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                            Klikni alebo pretiahni obrázok sem
+                                        </p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            JPEG, PNG, WebP, GIF • max 5 MB
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                onChange={handleFileSelect}
+                                className="hidden"
+                            />
+                            {uploadError && (
+                                <p className="text-sm text-red-500 mt-2">{uploadError}</p>
+                            )}
+                        </div>
+                    ) : (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                URL obrázka *
+                            </label>
+                            <input
+                                type="url"
+                                value={form.image}
+                                onChange={(e) => setForm({ ...form, image: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="https://images.unsplash.com/..."
+                            />
+                            {form.image && (
+                                <div className="mt-3 rounded-xl overflow-hidden">
+                                    <img src={form.image} alt="Preview" className="w-full h-48 object-cover" />
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -362,7 +526,7 @@ function EditPlaceForm({ params }: { params: Promise<{ id: string }> }) {
                     </Link>
                     <button
                         type="submit"
-                        disabled={saving}
+                        disabled={saving || uploading}
                         className="flex-1 py-4 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                         {saving ? (

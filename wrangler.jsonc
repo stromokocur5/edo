@@ -31,6 +31,12 @@
 			"database_id": "3b7825c4-7627-436d-827c-d071b1855e84"
 		}
 	],
+	"r2_buckets": [
+		{
+			"binding": "IMAGES_BUCKET",
+			"bucket_name": "edo-images"
+		}
+	],
 	"observability": {
 		"enabled": true
 	}
